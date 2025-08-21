@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cucina Cai · Smart Menu</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, sans-serif; margin:0; padding:16px; }
+    header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .lang-switch button { padding:6px 10px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; }
+    .active { border-color:#333; font-weight:600; }
+    .menu { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
+    .card { border:1px solid #eee; border-radius:12px; padding:12px; }
+    .card h4 { margin:6px 0; }
+    .row { display:flex; justify-content:space-between; align-items:center; }
+    .cart { position:fixed; right:16px; bottom:16px; left:16px; max-width:880px; margin:0 auto; background:#fff; border:1px solid #eee; border-radius:16px; padding:12px; box-shadow:0 4px 20px rgba(0,0,0,.08); }
+    .cart h3 { margin: 6px 0 10px; }
+    .muted { color:#666; font-size:14px; }
+    .note { width:100%; padding:8px; border:1px solid #ddd; border-radius:10px; }
+    .btn { padding:10px 14px; border:none; border-radius:10px; cursor:pointer; }
+    .btn.primary { background:#111; color:#fff; }
+    .toast { position: fixed; top: 12px; right: 12px; background: #111; color:#fff; padding:10px 12px; border-radius:10px; opacity:0; transition: opacity .2s; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h2 id="brand"></h2>
+      <div class="muted" id="subtitle"></div>
+    </div>
+    <div class="lang-switch">
+      <button data-lang="zh">中文</button>
+      <button data-lang="en">English</button>
+      <button data-lang="it">Italiano</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="menu" id="menu"></div>
+  </main>
+
+  <section class="cart" id="cartBox">
+    <h3 id="cartTitle"></h3>
+    <div id="cartItems" class="muted"></div>
+    <div class="row" style="margin-top:8px;">
+      <input id="note" class="note" placeholder="" />
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <div id="total"></div>
+      <button id="placeOrder" class="btn primary"></button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast">OK</div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
