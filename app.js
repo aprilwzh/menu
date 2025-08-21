@@ -1,5 +1,5 @@
 // ========= 配置 =========
-const ORDER_API = "https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOY_URL/exec"; // ← 改这里
+const ORDER_API = "https://script.google.com/macros/s/AKfycbxvIonq1SFMVuODE1NLXhWjNTds0TZwZq3_fis3p6WKvWzpHNvjceIt7ew5CB2F1HUadQ/exec"; // ← 改这里
 
 // ========= 多语言 =========
 const I18N = {
