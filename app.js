@@ -1,5 +1,5 @@
 // ===== 你的后端 API（保持你的 /exec）=====
-const ORDER_API = "https://script.google.com/macros/s/AKfycbx1i0rJx92cB-vbaN8qGvbRiqrfMXQCoyZOOGbriD1VFckclPYsMyzkLuYvqtE_JYQZXg/exec";
+const ORDER_API = "https://script.google.com/macros/s/AKfycbxeyUQ2PdPn5Qf8D85kcOr_LfYDDBB2_Fc_UDwO3GkGrmskuvV6GzNd0VLX3GG8IfqG/exec";
 const PLACEHOLDER_IMG = "./images/placeholder.webp"; // 没有图时的占位，可放一张通用占位图
 
 // ===== 多语言 =====
