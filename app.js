@@ -1,155 +1,74 @@
-// ========= 配置（已填你的 Apps Script /exec）=========
+// ===== 你的后端 API（保持你的 /exec）=====
 const ORDER_API = "https://script.google.com/macros/s/AKfycbxvIonq1SFMVuODE1NLXhWjNTds0TZwZq3_fis3p6WKvWzpHNvjceIt7ew5CB2F1HUadQ/exec";
+const PLACEHOLDER_IMG = "./images/placeholder.webp"; // 没有图时的占位，可放一张通用占位图
 
-// ========= 多语言 =========
+// ===== 多语言 =====
 const I18N = {
-  zh: { brand: "智能点餐", subtitle: t => `桌号：${t || "—"}（扫描桌贴可自动带入）`, add:"加入", cart:"购物车", notePH:"口味/忌口/过敏说明（可选）", place:"下单", empty:"购物车为空", total: s=>`合计：¥${s.toFixed(2)}` },
-  en: { brand: "Smart Menu", subtitle: t => `Table: ${t || "—"} (scan table QR to auto-fill)`, add:"Add", cart:"Cart", notePH:"Note: preferences/allergies (optional)", place:"Place Order", empty:"Your cart is empty", total: s=>`Total: ¥${s.toFixed(2)}` },
-  it: { brand: "Menu Intelligente", subtitle: t => `Tavolo: ${t || "—"} (scansiona il QR del tavolo)`, add:"Aggiungi", cart:"Carrello", notePH:"Note: preferenze/allergie (opzionale)", place:"Invia Ordine", empty:"Il carrello è vuoto", total: s=>`Totale: ¥${s.toFixed(2)}` }
+  zh: { brand:"智能点餐", subtitle:t=>`桌号：${t||"—"}（扫描桌贴可自动带入）`, add:"加入", cart:"购物车", notePH:"口味/忌口/过敏说明（可选）", place:"下单", empty:"购物车为空", total:s=>`合计：¥${s.toFixed(2)}` },
+  en: { brand:"Smart Menu", subtitle:t=>`Table: ${t||"—"} (scan table QR to auto-fill)`, add:"Add", cart:"Cart", notePH:"Note: preferences/allergies (optional)", place:"Place Order", empty:"Your cart is empty", total:s=>`Total: ¥${s.toFixed(2)}` },
+  it: { brand:"Menu Intelligente", subtitle:t=>`Tavolo: ${t||"—"} (scansiona il QR del tavolo)`, add:"Aggiungi", cart:"Carrello", notePH:"Note: preferenze/allergie (opzionale)", place:"Invia Ordine", empty:"Il carrello è vuoto", total:s=>`Totale: ¥${s.toFixed(2)}` }
 };
-
-// ========= 示例菜单 =========
-const MENU = [
-  { id: "margherita", price: 48, name: { zh:"玛格丽塔披萨", en:"Margherita Pizza", it:"Pizza Margherita" }, desc: { zh:"西红柿/马苏里拉/罗勒", en:"Tomato/Mozzarella/Basil", it:"Pomodoro/Mozzarella/Basilico" } },
-  { id: "carbonara",  price: 56, name: { zh:"培根蛋面",   en:"Spaghetti Carbonara", it:"Spaghetti alla Carbonara" }, desc: { zh:"培根/蛋黄/帕玛森",  en:"Guanciale/Egg/Parmigiano", it:"Guanciale/Uovo/Parmigiano" } },
-  { id: "tiramisu",   price: 28, name: { zh:"提拉米苏",     en:"Tiramisù",            it:"Tiramisù" }, desc: { zh:"咖啡/马斯卡彭",       en:"Coffee/Mascarpone",     it:"Caffè/Mascarpone" } }
-];
-
-// ========= 语言值夹逼（防止本地存了非法值导致白屏）=========
 const LANGS = ["zh","en","it"];
 let currentLang = localStorage.getItem("lang");
-if (!LANGS.includes(currentLang)) {
-  currentLang = "zh";
-  localStorage.setItem("lang", "zh");
-}
+if(!LANGS.includes(currentLang)){ currentLang="zh"; localStorage.setItem("lang","zh"); }
 
-// ========= 购物车 =========
+let MENU = [];   // 从后端拉取（含 image 字段）
 let cart = [];
 
-// 解析 /t/12 的桌号
-function getTableId(){
-  const m = location.pathname.match(/\/t\/([^\/?#]+)/);
-  return m ? decodeURIComponent(m[1]) : "";
+function getTableId(){ const m=location.pathname.match(/\/t\/([^\/?#]+)/); return m?decodeURIComponent(m[1]):""; }
+function setActiveLangBtn(){ document.querySelectorAll(".lang-switch button").forEach(b=>b.classList.toggle("active", b.dataset.lang===currentLang)); }
+function setupLangSelector(){ document.querySelectorAll(".lang-switch button").forEach(b=>b.addEventListener("click", async ()=>{ currentLang=b.dataset.lang; localStorage.setItem("lang",currentLang); await loadMenu(); render(); })); }
+
+// 拉菜单（统一菜单，包含图片）
+async function loadMenu(){
+  try{
+    const res = await fetch(`${ORDER_API}?action=menu&lang=${encodeURIComponent(currentLang)}`);
+    const data = await res.json();
+    MENU = data.ok ? (data.items || []) : [];
+  }catch(_){ MENU = []; }
 }
 
-// 语言按钮
-function setActiveLangBtn(){
-  document.querySelectorAll(".lang-switch button")
-    .forEach(btn => btn.classList.toggle("active", btn.dataset.lang === currentLang));
-}
-function setupLangSelector(){
-  document.querySelectorAll(".lang-switch button")
-    .forEach(btn => btn.addEventListener("click", () => {
-      currentLang = btn.dataset.lang;
-      localStorage.setItem("lang", currentLang);
-      render();
-    }));
-}
-
-// 渲染菜单
 function renderMenu(){
-  const box = document.getElementById("menu");
-  box.innerHTML = "";
-  MENU.forEach(it => {
-    const card = document.createElement("div");
-    card.className = "card";
+  const box=document.getElementById("menu"); box.innerHTML="";
+  MENU.forEach(it=>{
+    const img = it.image && String(it.image).startsWith("http") ? it.image : PLACEHOLDER_IMG;
+    const card=document.createElement("div"); card.className="card";
     card.innerHTML = `
-      <h4>${it.name[currentLang]}</h4>
-      <div class="muted">${it.desc[currentLang] || ""}</div>
+      <div class="thumb">
+        <img src="${img}" alt="${it.name || ''}" loading="lazy" referrerpolicy="no-referrer">
+      </div>
+      <h4>${it.name}</h4>
+      <div class="muted">${it.desc||""}</div>
       <div class="row" style="margin-top:8px;">
-        <div>¥${it.price.toFixed(2)}</div>
+        <div>¥${Number(it.price||0).toFixed(2)}</div>
         <button class="btn" data-id="${it.id}">${I18N[currentLang].add}</button>
       </div>`;
-    card.querySelector("button").addEventListener("click", () => addToCart(it));
+    card.querySelector("button").addEventListener("click",()=>addToCart(it));
     box.appendChild(card);
   });
 }
 
-function addToCart(it){
-  const hit = cart.find(x => x.id === it.id);
-  if (hit) hit.qty += 1;
-  else cart.push({ id: it.id, name: it.name[currentLang], price: it.price, qty: 1 });
-  renderCart();
-}
+function addToCart(it){ const hit=cart.find(x=>x.id===it.id); if(hit) hit.qty+=1; else cart.push({id:it.id, name:it.name, price:Number(it.price||0), qty:1}); renderCart(); }
 
-// 渲染购物车
 function renderCart(){
-  const t = I18N[currentLang] || I18N.zh; // 兜底
-  document.getElementById("cartTitle").textContent = t.cart;
-  document.getElementById("note").placeholder = t.notePH;
-
-  if (cart.length === 0) {
-    document.getElementById("cartItems").textContent = t.empty;
-    document.getElementById("total").textContent = t.total(0);
-  } else {
-    const list = cart.map(x => `${x.name} × ${x.qty}`).join(" · ");
-    const sum = cart.reduce((s,x) => s + x.price * x.qty, 0);
-    document.getElementById("cartItems").textContent = list;
-    document.getElementById("total").textContent = t.total(sum);
-  }
-
-  const btn = document.getElementById("placeOrder");
-  btn.textContent = t.place;
-  btn.onclick = placeOrder;
+  const t=I18N[currentLang]||I18N.zh;
+  document.getElementById("cartTitle").textContent=t.cart;
+  document.getElementById("note").placeholder=t.notePH;
+  if(cart.length===0){ document.getElementById("cartItems").textContent=t.empty; document.getElementById("total").textContent=t.total(0); }
+  else { const list=cart.map(x=>`${x.name} × ${x.qty}`).join(" · "); const sum=cart.reduce((s,x)=>s+x.price*x.qty,0); document.getElementById("cartItems").textContent=list; document.getElementById("total").textContent=t.total(sum); }
+  const btn=document.getElementById("placeOrder"); btn.textContent=t.place; btn.onclick=placeOrder;
 }
 
-// 轻提示
-function toast(msg){
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), 1800);
-}
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),1800); }
 
-// 提交订单（sendBeacon 优先；失败时 fetch no-cors 兜底）
 async function placeOrder(){
-  if (cart.length === 0) return alert((I18N[currentLang] || I18N.zh).empty);
-
-  const payload = {
-    table_id: getTableId(),
-    items: cart,
-    note: document.getElementById("note").value || "",
-    lang: currentLang
-  };
-
-  // 方式1：sendBeacon（无需 CORS 响应）
-  if (navigator.sendBeacon) {
-    try {
-      const ok = navigator.sendBeacon(ORDER_API, new Blob([JSON.stringify(payload)], { type: "text/plain" }));
-      if (ok) {
-        cart = []; renderCart();
-        toast(currentLang === "zh" ? "✓ 下单成功" : currentLang === "it" ? "✓ Ordine inviato" : "✓ Order placed");
-        return;
-      }
-    } catch (_) {}
-  }
-
-  // 方式2：fetch + no-cors（不读取响应）
-  try {
-    await fetch(ORDER_API, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-    cart = []; renderCart();
-    toast(currentLang === "zh" ? "✓ 下单成功" : currentLang === "it" ? "✓ Ordine inviato" : "✓ Order placed");
-  } catch (e) {
-    alert("× Failed");
-    console.error(e);
-  }
+  if(cart.length===0) return alert((I18N[currentLang]||I18N.zh).empty);
+  const payload={ table_id:getTableId(), items:cart, note:document.getElementById("note").value||"", lang:currentLang };
+  if(navigator.sendBeacon){ try{ const ok=navigator.sendBeacon(ORDER_API,new Blob([JSON.stringify(payload)],{type:"text/plain"})); if(ok){ cart=[]; renderCart(); toast(currentLang==="zh"?"✓ 下单成功":currentLang==="it"?"✓ Ordine inviato":"✓ Order placed"); return;} }catch(_){} }
+  try{ await fetch(ORDER_API,{method:"POST",mode:"no-cors",headers:{ "Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)}); cart=[]; renderCart(); toast(currentLang==="zh"?"✓ 下单成功":currentLang==="it"?"✓ Ordine inviato":"✓ Order placed"); }
+  catch(e){ alert("× Failed"); }
 }
 
-// 页面总渲染
-function render(){
-  setActiveLangBtn();
-  const t = I18N[currentLang] || I18N.zh; // 兜底
-  document.getElementById("brand").textContent = t.brand;
-  document.getElementById("subtitle").textContent = t.subtitle(getTableId());
-  renderMenu();
-  renderCart();
-}
-
-// 初始化
-setupLangSelector();
-render();
+async function bootstrap(){ setupLangSelector(); await loadMenu(); render(); }
+function render(){ setActiveLangBtn(); const t=I18N[currentLang]||I18N.zh; document.getElementById("brand").textContent=t.brand; document.getElementById("subtitle").textContent=t.subtitle(getTableId()); renderMenu(); renderCart(); }
+bootstrap();
