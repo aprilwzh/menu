@@ -2,26 +2,124 @@
 <html lang="zh">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111" />
   <title>Cucina Cai · Smart Menu</title>
+  <!-- 你可以保留独立的 styles.css；下面 <style> 中已包含关键样式 -->
   <link rel="stylesheet" href="./styles.css" />
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, sans-serif; margin:0; padding:16px; }
-    header { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .lang-switch button { padding:6px 10px; border:1px solid #ddd; border-radius:8px; background:#fff; cursor:pointer; }
-    .active { border-color:#333; font-weight:600; }
-    .menu { display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
-    .card { border:1px solid #eee; border-radius:12px; padding:12px; }
-    .card h4 { margin:6px 0; }
-    .row { display:flex; justify-content:space-between; align-items:center; }
-    .cart { position:fixed; right:16px; bottom:16px; left:16px; max-width:880px; margin:0 auto; background:#fff; border:1px solid #eee; border-radius:16px; padding:12px; box-shadow:0 4px 20px rgba(0,0,0,.08); }
-    .cart h3 { margin: 6px 0 10px; }
+    :root {
+      --gap: 14px;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #fff;
+      color: #111;
+    }
+    header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    h2 { margin: 0; font-weight: 700; }
     .muted { color:#666; font-size:14px; }
-    .note { width:100%; padding:8px; border:1px solid #ddd; border-radius:10px; }
-    .btn { padding:10px 14px; border:none; border-radius:10px; cursor:pointer; }
+
+    .lang-switch { display: flex; gap: 8px; }
+    .lang-switch button {
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .lang-switch button.active { border-color:#111; font-weight:600; }
+
+    /* 菜单网格 */
+    .menu {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--gap);
+    }
+    .card {
+      border: 1px solid #eee;
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #fff;
+    }
+    .card h4 { margin: 8px 0 6px; font-size: 16px; }
+    .row { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+
+    /* 图片卡片：比例裁切，移动端友好 */
+    .card .thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border-radius: 10px;
+      background: #f6f6f6;
+      margin-bottom: 8px;
+    }
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 固定购物车（底部） */
+    .cart {
+      position: fixed;
+      right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      left: 16px;
+      max-width: 880px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 6px 22px rgba(0,0,0,.08);
+    }
+    .cart h3 { margin: 6px 0 10px; }
+    .note {
+      width:100%; padding:10px;
+      border:1px solid #ddd; border-radius:10px;
+      font: inherit;
+    }
+    .btn {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #f3f3f3;
+    }
     .btn.primary { background:#111; color:#fff; }
-    .toast { position: fixed; top: 12px; right: 12px; background: #111; color:#fff; padding:10px 12px; border-radius:10px; opacity:0; transition: opacity .2s; }
+
+    /* 页面顶端提示 */
+    .toast {
+      position: fixed; top: 12px; right: 12px;
+      background: #111; color:#fff;
+      padding: 10px 12px; border-radius: 10px;
+      opacity: 0; transition: opacity .2s;
+      z-index: 20;
+    }
     .toast.show { opacity: 1; }
+
+    /* 为底部购物车留出空间，避免被遮挡 */
+    main { padding-bottom: 150px; }
+
+    /* 小屏优化 */
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .menu { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .btn { padding: 12px 14px; }
+      .cart { left: 10px; right: 10px; border-radius: 14px; }
+    }
   </style>
 </head>
 <body>
@@ -38,10 +136,12 @@
   </header>
 
   <main>
+    <!-- 菜单卡片容器（app.js 会渲染） -->
     <div class="menu" id="menu"></div>
   </main>
 
-  <section class="cart" id="cartBox">
+  <!-- 固定底部购物车 -->
+  <section class="cart" id="cartBox" aria-live="polite">
     <h3 id="cartTitle"></h3>
     <div id="cartItems" class="muted"></div>
     <div class="row" style="margin-top:8px;">
@@ -53,8 +153,11 @@
     </div>
   </section>
 
-  <div id="toast" class="toast">OK</div>
+  <!-- 顶部轻提示 -->
+  <div id="toast" class="toast" role="status" aria-live="polite">OK</div>
 
+  <!-- 业务脚本（已在 app.js 里适配图片与移动端） -->
   <script src="./app.js"></script>
 </body>
-</html> 
+</html>
+
