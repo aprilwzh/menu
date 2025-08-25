@@ -1,4 +1,4 @@
-const ORDER_API = "https://script.google.com/macros/s/AKfycbzf2bMy6D56ihIpp24Rwy13Ov0mbn2vUYW9xl3bT7eBLtjgwbUJItqyYePqjL-dhpVoOg/exec";
+const ORDER_API = "https://script.google.com/macros/s/AKfycbxUtf2pTGEb4BYiWUM_5FYWASryPBUdONgM0f_V-fqVbbU6c0fp5HwDXs1calq5CPdp2g/exec";
 let ADMIN_TOKEN = localStorage.getItem("ADMIN_TOKEN") || "";
 
 const $ = s => document.querySelector(s);
