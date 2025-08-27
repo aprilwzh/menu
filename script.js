@@ -1,5 +1,5 @@
 // 将此 URL 替换为你的 Web 应用 URL
-const API_URL = "YOUR_GOOGLE_APP_SCRIPT_URL"; 
+const API_URL = "https://script.google.com/macros/s/1h0ynqAZIqbiZYATQtTDV5JzYmZJz09GcrrTQxbtsDC3KsaGKqEPeDaKF/exec"; 
 
 let cart = {};
 
