@@ -1,1 +1,62 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
 
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 1rem;
+    text-align: center;
+}
+
+main {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+}
+
+.menu-list {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.menu-item {
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.menu-item img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.cart-summary {
+    background-color: #fff;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
+}
+
+/* 移动设备适配 */
+@media (min-width: 768px) {
+    main {
+        flex-direction: row;
+        gap: 2rem;
+    }
+    .menu-list {
+        flex: 3;
+    }
+    .cart-summary {
+        flex: 1;
+        position: sticky;
+        top: 1rem;
+    }
+}
