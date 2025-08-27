@@ -1,5 +1,5 @@
 // ===== 你的后端 API（保持你的 /exec）=====
-const ORDER_API = "https://script.google.com/macros/s/AKfycbxUtf2pTGEb4BYiWUM_5FYWASryPBUdONgM0f_V-fqVbbU6c0fp5HwDXs1calq5CPdp2g/exec";
+const ORDER_API = "https://script.google.com/macros/s/1h0ynqAZIqbiZYATQtTDV5JzYmZJz09GcrrTQxbtsDC3KsaGKqEPeDaKF/exec";
 // 放在 ORDER_API 下面就行
 const PLACEHOLDER_IMG = "./images/placeholder.webp"; // 没图时的占位图
 // 也可以用任意在线占位图：
