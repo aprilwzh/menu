@@ -1,123 +1,112 @@
-const ORDER_API = "https://script.google.com/macros/s/1h0ynqAZIqbiZYATQtTDV5JzYmZJz09GcrrTQxbtsDC3KsaGKqEPeDaKF/exec";
-let ADMIN_TOKEN = localStorage.getItem("ADMIN_TOKEN") || "";
+const $ = s=>document.querySelector(s);
+function ls(k,v){ if(v===undefined) return localStorage.getItem(k)||""; localStorage.setItem(k,v); }
 
+$("#api").value = ls("api");
+$("#token").value = ls("token");
+$("#tableId").value = ls("tableId");
 
-const $ = s => document.querySelector(s);
-$("#token").value = ADMIN_TOKEN;
-$("#saveToken").onclick = ()=>{ ADMIN_TOKEN = $("#token").value.trim(); localStorage.setItem("ADMIN_TOKEN", ADMIN_TOKEN); loadOrders(); loadMenuAll(); };
-$("#refresh").onclick = ()=> loadOrders();
-$("#flt").oninput = ()=> renderOrders(window.__orders||[]);
-$("#loadMenu").onclick = ()=> loadMenuAll();
+$("#load").onclick = load;
 
-function fmt(t){ try{return new Date(t).toLocaleString()}catch(_){return t} }
+async function load(){
+  const API = $("#api").value.trim();
+  const token = $("#token").value.trim();
+  const table = $("#tableId").value.trim();
+  if(!API || !token){ alert("请先填写 API 与口令"); return; }
+  ls("api",API); ls("token",token); ls("tableId",table);
 
-/** 订单 **/
-async function loadOrders(){
-  if(!ADMIN_TOKEN) return alert("先输入管理口令并保存");
-  const res = await fetch(`${ORDER_API}?action=orders&token=${encodeURIComponent(ADMIN_TOKEN)}`);
-  const data = await res.json();
-  if(!data.ok) return alert("口令错误或接口异常");
-  window.__orders = data.rows||[];
-  renderOrders(window.__orders);
-}
+  const url = new URL(API);
+  url.searchParams.set("action","orders");
+  url.searchParams.set("token", token);
+  if(table) url.searchParams.set("table_id", table);
 
-function renderOrders(rows){
-  const q = $("#flt").value.trim();
-  const list = rows.slice().reverse().filter(r => !q || String(r.table_id)===q);
+  const r = await fetch(url.toString());
+  const d = await r.json().catch(()=>({ok:false,error:"非 JSON 返回"}));
+  if(!d.ok){ alert("加载失败："+(d.error||"unknown")); return; }
+
   const tb = $("#tbl tbody"); tb.innerHTML="";
-  for(const r of list){
-    let items=[]; try{ items=JSON.parse(r.items||"[]"); }catch(_){}
-    const lines = items.map(x=>`${x.name} × ${x.qty}  ¥${(x.price*x.qty).toFixed(2)}`).join("<br>");
+  d.rows.forEach(row=>{
+    const items = parseItems(row.items);
+    const sum = items.reduce((s,x)=>s + Number(x.price||0)*Number(x.qty||1), 0);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${fmt(r.created_at)}</td>
-      <td><b>${r.table_id||""}</b></td>
-      <td>${lines||"<i>空</i>"}${r.note?("<div class='muted'>备注："+r.note+"</div>"):""}</td>
-      <td><button class="btn">打印小票</button></td>`;
-    tr.querySelector("button").onclick = ()=> printTicket(r, items);
+      <td>${row.id}</td>
+      <td>${fmt(row.created_at)}</td>
+      <td>${row.table_id||""}</td>
+      <td><pre>${items.map(x=>`${x.name||x.id} × ${x.qty||1}  ¥${Number(x.price||0).toFixed(2)}`).join('\n')}</pre><div class="muted">合计：¥${sum.toFixed(2)}</div></td>
+      <td>${row.note||""}</td>
+      <td><span class="status">${row.status||"new"}</span></td>
+      <td class="actions">
+        <button onclick='editOrder(${JSON.stringify(row).replace(/'/g,"&#39;")})'>编辑</button>
+        <button onclick='printOrder(${JSON.stringify({id:row.id}).replace(/'/g,"&#39;")})'>打印</button>
+        <button onclick='deleteOrder("${row.id}")'>删除</button>
+      </td>
+    `;
     tb.appendChild(tr);
-  }
-}
-
-function printTicket(order, items){
-  const total = items.reduce((s,x)=>s+(Number(x.price)||0)*(Number(x.qty)||0), 0);
-  const w = window.open("", "_blank");
-  w.document.write(`
-  <html><head><meta charset="utf-8"><title>ticket</title>
-  <style>@media print{body{margin:0}.ticket{width:58mm;padding:6px;font-family:monospace;font-size:12px}.trow{display:flex;justify-content:space-between}h3{margin:0 0 6px 0;text-align:center}}</style>
-  </head><body>
-    <div class="ticket">
-      <h3>Cucina Cai</h3>
-      <div>桌号: ${order.table_id||""}</div>
-      <div>时间: ${fmt(order.created_at)}</div>
-      <hr/>
-      ${items.map(x=>`<div class="trow"><span>${x.name} × ${x.qty}</span><span>¥${(x.price*x.qty).toFixed(2)}</span></div>`).join("")}
-      <hr/>
-      <div class="trow"><strong>合计</strong><strong>¥${total.toFixed(2)}</strong></div>
-      ${order.note?`<div>备注: ${order.note}</div>`:""}
-    </div>
-    <script>window.onload=()=>window.print()</script>
-  </body></html>`);
-  w.document.close();
-}
-
-/** 菜单管理（增/改/删） **/
-async function loadMenuAll(){
-  if(!ADMIN_TOKEN) return alert("先输入管理口令并保存");
-  const res = await fetch(`${ORDER_API}?action=menu_all&token=${encodeURIComponent(ADMIN_TOKEN)}`);
-  const data = await res.json();
-  if(!data.ok) return alert("口令错误或接口异常");
-  renderMenu(data.rows || []);
-}
-
-function renderMenu(rows){
-  const tb = $("#menuTbl tbody"); tb.innerHTML = "";
-  // 增加一个“空白行”用于新增
-  rows = rows.concat([{id:"",price:"",name_zh:"",name_en:"",name_it:"",desc_zh:"",desc_en:"",desc_it:"",available:true}]);
-  for(const r of rows){
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td contenteditable>${r.id||""}</td>
-      <td contenteditable>${r.price||""}</td>
-      <td contenteditable>${r.name_zh||""}</td>
-      <td contenteditable>${r.name_en||""}</td>
-      <td contenteditable>${r.name_it||""}</td>
-      <td contenteditable>${r.desc_zh||""}</td>
-      <td contenteditable>${r.desc_en||""}</td>
-      <td contenteditable>${r.desc_it||""}</td>
-      <td contenteditable>${String(r.available).toLowerCase()!=="false"?"TRUE":"FALSE"}</td>
-      <td class="row">
-        <button class="btn save">保存</button>
-        <button class="btn del">删除</button>
-      </td>`;
-    tr.querySelector(".save").onclick = ()=> saveRow(tr);
-    tr.querySelector(".del").onclick  = ()=> delRow(tr);
-    tb.appendChild(tr);
-  }
-}
-
-async function saveRow(tr){
-  const td = s => tr.children[s].textContent.trim();
-  const payload = {
-    id: td(0), price: Number(td(1)||0),
-    name_zh: td(2), name_en: td(3), name_it: td(4),
-    desc_zh: td(5), desc_en: td(6), desc_it: td(7),
-    available: td(8).toUpperCase()!=="FALSE"
-  };
-  if(!payload.id) return alert("id 不能为空");
-  await fetch(`${ORDER_API}?action=menu_upsert&token=${encodeURIComponent(ADMIN_TOKEN)}`, {
-    method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload)
   });
-  loadMenuAll();
 }
 
-async function delRow(tr){
-  const id = tr.children[0].textContent.trim();
-  if(!id) return alert("先选中要删除的行（id 不能为空）");
-  if(!confirm(`确定删除 ${id} ?`)) return;
-  await fetch(`${ORDER_API}?action=menu_delete&token=${encodeURIComponent(ADMIN_TOKEN)}&id=${encodeURIComponent(id)}`, { method:"POST" });
-  loadMenuAll();
+function parseItems(s){
+  try{ const a = JSON.parse(s||"[]"); return Array.isArray(a)?a:[]; }catch(_){ return []; }
+}
+function fmt(s){ try{ return new Date(s).toLocaleString(); }catch(_){ return s||""; } }
+
+async function editOrder(row){
+  const items = parseItems(row.items);
+  const content = prompt(
+    `编辑 JSON（仅 items、note、status 会被保存）\n例：[{ "id":"margherita","name":"玛格丽塔披萨","price":48,"qty":2 }]`,
+    JSON.stringify({ items, note: row.note||"", status: row.status||"new" }, null, 2)
+  );
+  if(!content) return;
+  let body; try{ body = JSON.parse(content); }catch(_){ alert("JSON 不合法"); return; }
+  const API = $("#api").value.trim(), token = $("#token").value.trim();
+  const r = await fetch(`${API}?action=order_update&token=${encodeURIComponent(token)}`, {
+    method:"POST",
+    headers:{ "Content-Type":"text/plain;charset=utf-8" },
+    body: JSON.stringify({ id: row.id, ...body })
+  });
+  const d = await r.json().catch(()=>({ok:false}));
+  if(d.ok){ alert("已保存"); load(); } else { alert("保存失败："+(d.error||"unknown")); }
 }
 
-loadOrders();
-loadMenuAll();
+async function deleteOrder(id){
+  if(!confirm(`确认删除订单 ${id} ？不可恢复`)) return;
+  const API = $("#api").value.trim(), token = $("#token").value.trim();
+  const r = await fetch(`${API}?action=order_delete&token=${encodeURIComponent(token)}&id=${encodeURIComponent(id)}`, {method:"POST"});
+  const d = await r.json().catch(()=>({ok:false}));
+  if(d.ok){ load(); } else { alert("删除失败："+(d.error||"unknown")); }
+}
+
+async function printOrder({id}){
+  const API = $("#api").value.trim(), token = $("#token").value.trim();
+  const r = await fetch(`${API}?action=order&id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`);
+  const d = await r.json().catch(()=>({ok:false}));
+  if(!d.ok){ alert("读取失败"); return; }
+  const o = d.order;
+  const items = parseItems(o.items);
+  const sum = items.reduce((s,x)=>s + Number(x.price||0)*Number(x.qty||1), 0);
+  const w = window.open("", "PRINT");
+  w.document.write(`
+    <html><head><title>票据 ${o.id}</title>
+    <style>
+    body{font:14px/1.4 -apple-system,Segoe UI,Roboto,Arial}
+    .ticket{width:58mm;margin:0 auto}
+    hr{border:none;border-top:1px dashed #999;margin:8px 0}
+    </style></head><body onload="window.print();window.close()">
+      <div class="ticket">
+        <h3>Cucina Cai</h3>
+        <div>订单：${o.id}</div>
+        <div>桌号：${o.table_id||""}</div>
+        <div>时间：${fmt(o.created_at)}</div>
+        <hr/>
+        ${items.map(x=>`<div>${(x.name||x.id)} × ${x.qty||1} <span style="float:right">¥${Number(x.price||0).toFixed(2)}</span></div>`).join("")}
+        <hr/>
+        <div>合计 <span style="float:right">¥${sum.toFixed(2)}</span></div>
+        ${o.note?`<hr/><div>备注：${o.note}</div>`:""}
+      </div>
+    </body></html>
+  `);
+  w.document.close(); w.focus();
+}
+
+load();
+
