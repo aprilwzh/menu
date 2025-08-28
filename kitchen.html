@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>厨房端 · 自动打印</title>
+  <style>
+    body{font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Arial;margin:0}
+    .bar{display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid #eee}
+    input,button{padding:8px;border:1px solid #ddd;border-radius:8px}
+    .ok{color:#0a7b22}.bad{color:#b00020}
+    .log{padding:12px;max-height:40vh;overflow:auto;font-size:14px;background:#fafafa;border-top:1px solid #eee}
+    .muted{color:#666}
+    /* 打印样式：58mm 小票 */
+    @media print{
+      .no-print{display:none !important}
+      body{background:#fff;margin:0;padding:0}
+      .ticket{width:58mm;margin:0 auto;font:12px/1.4 -apple-system,Segoe UI,Roboto,Arial}
+      .ticket h3{margin:6px 0;text-align:center}
+      .row{display:flex;justify-content:space-between}
+      hr{border:none;border-top:1px dashed #999;margin:6px 0}
+    }
+  </style>
+</head>
+<body>
+  <div class="bar no-print">
+    <label>API：
+      <input id="api" size="52" placeholder="https://script.google.com/macros/s/.../exec">
+    </label>
+    <label>口令：
+      <input id="token" size="10" placeholder="ADMIN_TOKEN">
+    </label>
+    <label>桌号筛选：
+      <input id="table" size="6" placeholder="留空=全部">
+    </label>
+    <label>间隔(s)：
+      <input id="interval" size="4" value="3">
+    </label>
+    <button id="start">开始</button>
+    <button id="stop">停止</button>
+    <span id="status" class="muted">待机</span>
+  </div>
+
+  <div id="log" class="log no-print"></div>
+
+  <script src="./kitchen.js?v=1"></script>
+</body>
+</html>
