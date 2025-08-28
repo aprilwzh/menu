@@ -1,76 +1,86 @@
-// ===== 你的后端 API（保持你的 /exec）=====
-const ORDER_API = "https://script.google.com/macros/s/1h0ynqAZIqbiZYATQtTDV5JzYmZJz09GcrrTQxbtsDC3KsaGKqEPeDaKF/exec";
-// 放在 ORDER_API 下面就行
-const PLACEHOLDER_IMG = "./images/placeholder.webp"; // 没图时的占位图
-// 也可以用任意在线占位图：
-// const PLACEHOLDER_IMG = "https://via.placeholder.com/600x400?text=Menu";
+// 你的后端 API（保持 /exec）
+const ORDER_API = "https://script.google.com/macros/s/AKfycbzzaiCVGpGBCvtsLVkUh0biWMuPab01_s5jaX5jSRkCxFFI35ZlvQL-DpxVqAw7IzSiug/exec";
+const PLACEHOLDER_IMG = ""; // 可留空或放占位图 URL
 
-
-// ===== 多语言 =====
+// 多语言
 const I18N = {
-  zh: { brand:"智能点餐", subtitle:t=>`桌号：${t||"—"}（扫描桌贴可自动带入）`, add:"加入", cart:"购物车", notePH:"口味/忌口/过敏说明（可选）", place:"下单", empty:"购物车为空", total:s=>`合计：¥${s.toFixed(2)}` },
-  en: { brand:"Smart Menu", subtitle:t=>`Table: ${t||"—"} (scan table QR to auto-fill)`, add:"Add", cart:"Cart", notePH:"Note: preferences/allergies (optional)", place:"Place Order", empty:"Your cart is empty", total:s=>`Total: ¥${s.toFixed(2)}` },
-  it: { brand:"Menu Intelligente", subtitle:t=>`Tavolo: ${t||"—"} (scansiona il QR del tavolo)`, add:"Aggiungi", cart:"Carrello", notePH:"Note: preferenze/allergie (opzionale)", place:"Invia Ordine", empty:"Il carrello è vuoto", total:s=>`Totale: ¥${s.toFixed(2)}` }
+  zh:{brand:"智能点餐", subtitle:t=>`桌号：${t||"—"}（扫描桌贴可自动带入）`, add:"加入", cart:"购物车", notePH:"口味/忌口/过敏说明（可选）", place:"下单", empty:"购物车为空", total:s=>`合计：¥${s.toFixed(2)}`},
+  en:{brand:"Smart Menu", subtitle:t=>`Table: ${t||"—"} (scan table QR to auto-fill)`, add:"Add", cart:"Cart", notePH:"Note: preferences/allergies (optional)", place:"Place Order", empty:"Your cart is empty", total:s=>`Total: ¥${s.toFixed(2)}`},
+  it:{brand:"Menu Intelligente", subtitle:t=>`Tavolo: ${t||"—"} (scansiona il QR del tavolo)`, add:"Aggiungi", cart:"Carrello", notePH:"Note: preferenze/allergie (opzionale)", place:"Invia Ordine", empty:"Il carrello è vuoto", total:s=>`Totale: ¥${s.toFixed(2)}`}
 };
-const LANGS = ["zh","en","it"];
-let currentLang = localStorage.getItem("lang");
+const LANGS=["zh","en","it"];
+let currentLang=localStorage.getItem("lang");
 if(!LANGS.includes(currentLang)){ currentLang="zh"; localStorage.setItem("lang","zh"); }
 
-let MENU = [];   // 从后端拉取（含 image 字段）
-let cart = [];
+let MENU=[], cart=[];
+const getTableId=()=>{ const m=location.pathname.match(/\/t\/([^\/?#]+)/); return m?decodeURIComponent(m[1]):""; };
+const setActiveLangBtn=()=>document.querySelectorAll(".lang-switch button").forEach(b=>b.classList.toggle("active", b.dataset.lang===currentLang));
+const setupLangSelector=()=>document.querySelectorAll(".lang-switch button").forEach(b=>b.addEventListener("click", async ()=>{
+  currentLang=b.dataset.lang; localStorage.setItem("lang",currentLang); await loadMenu(); render();
+}));
 
-function getTableId(){ const m=location.pathname.match(/\/t\/([^\/?#]+)/); return m?decodeURIComponent(m[1]):""; }
-function setActiveLangBtn(){ document.querySelectorAll(".lang-switch button").forEach(b=>b.classList.toggle("active", b.dataset.lang===currentLang)); }
-function setupLangSelector(){ document.querySelectorAll(".lang-switch button").forEach(b=>b.addEventListener("click", async ()=>{ currentLang=b.dataset.lang; localStorage.setItem("lang",currentLang); await loadMenu(); render(); })); }
-
-// 拉菜单（统一菜单，包含图片）
 async function loadMenu(){
   try{
-    const res = await fetch(`${ORDER_API}?action=menu&lang=${encodeURIComponent(currentLang)}`);
-    const data = await res.json();
-    MENU = data.ok ? (data.items || []) : [];
-  }catch(_){ MENU = []; }
+    const r=await fetch(`${ORDER_API}?action=menu&lang=${encodeURIComponent(currentLang)}`);
+    const d=await r.json();
+    MENU = d.ok ? (d.items||[]) : [];
+  }catch(_){ MENU=[]; }
+  if(!MENU.length){ // 兜底防空白
+    MENU=[
+      {id:"margherita", price:48, name:"玛格丽塔披萨", desc:"西红柿/马苏里拉/罗勒"},
+      {id:"carbonara",  price:56, name:"培根蛋面",   desc:"培根/蛋黄/帕玛森"},
+      {id:"tiramisu",   price:28, name:"提拉米苏",   desc:"咖啡/马斯卡彭"}
+    ];
+  }
 }
 
 function renderMenu(){
   const box=document.getElementById("menu"); box.innerHTML="";
   MENU.forEach(it=>{
     const img = it.image && String(it.image).startsWith("http") ? it.image : PLACEHOLDER_IMG;
-    const card=document.createElement("div"); card.className="card";
-    card.innerHTML = `
-      <div class="thumb">
-        <img src="${img}" alt="${it.name || ''}" loading="lazy" referrerpolicy="no-referrer">
-      </div>
+    const el=document.createElement("div"); el.className="card";
+    el.innerHTML=`
+      ${img?`<img src="${img}" alt="${it.name||''}" loading="lazy" style="width:100%;border-radius:10px;margin-bottom:8px">`:''}
       <h4>${it.name}</h4>
       <div class="muted">${it.desc||""}</div>
       <div class="row" style="margin-top:8px;">
         <div>¥${Number(it.price||0).toFixed(2)}</div>
         <button class="btn" data-id="${it.id}">${I18N[currentLang].add}</button>
       </div>`;
-    card.querySelector("button").addEventListener("click",()=>addToCart(it));
-    box.appendChild(card);
+    el.querySelector("button").addEventListener("click",()=>addToCart(it));
+    box.appendChild(el);
   });
 }
 
-function addToCart(it){ const hit=cart.find(x=>x.id===it.id); if(hit) hit.qty+=1; else cart.push({id:it.id, name:it.name, price:Number(it.price||0), qty:1}); renderCart(); }
-
+function addToCart(it){ const hit=cart.find(x=>x.id===it.id); if(hit) hit.qty+=1; else cart.push({id:it.id,name:it.name,price:Number(it.price||0),qty:1}); renderCart(); }
 function renderCart(){
   const t=I18N[currentLang]||I18N.zh;
   document.getElementById("cartTitle").textContent=t.cart;
   document.getElementById("note").placeholder=t.notePH;
   if(cart.length===0){ document.getElementById("cartItems").textContent=t.empty; document.getElementById("total").textContent=t.total(0); }
-  else { const list=cart.map(x=>`${x.name} × ${x.qty}`).join(" · "); const sum=cart.reduce((s,x)=>s+x.price*x.qty,0); document.getElementById("cartItems").textContent=list; document.getElementById("total").textContent=t.total(sum); }
+  else{
+    const list=cart.map(x=>`${x.name} × ${x.qty}`).join(" · ");
+    const sum=cart.reduce((s,x)=>s+x.price*x.qty,0);
+    document.getElementById("cartItems").textContent=list;
+    document.getElementById("total").textContent=t.total(sum);
+  }
   const btn=document.getElementById("placeOrder"); btn.textContent=t.place; btn.onclick=placeOrder;
 }
-
 function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show"); setTimeout(()=>el.classList.remove("show"),1800); }
 
 async function placeOrder(){
   if(cart.length===0) return alert((I18N[currentLang]||I18N.zh).empty);
   const payload={ table_id:getTableId(), items:cart, note:document.getElementById("note").value||"", lang:currentLang };
-  if(navigator.sendBeacon){ try{ const ok=navigator.sendBeacon(ORDER_API,new Blob([JSON.stringify(payload)],{type:"text/plain"})); if(ok){ cart=[]; renderCart(); toast(currentLang==="zh"?"✓ 下单成功":currentLang==="it"?"✓ Ordine inviato":"✓ Order placed"); return;} }catch(_){} }
-  try{ await fetch(ORDER_API,{method:"POST",mode:"no-cors",headers:{ "Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)}); cart=[]; renderCart(); toast(currentLang==="zh"?"✓ 下单成功":currentLang==="it"?"✓ Ordine inviato":"✓ Order placed"); }
-  catch(e){ alert("× Failed"); }
+  if(navigator.sendBeacon){
+    try{
+      const ok=navigator.sendBeacon(ORDER_API,new Blob([JSON.stringify(payload)],{type:"text/plain"}));
+      if(ok){ cart=[]; renderCart(); toast(currentLang==="zh"?"✓ 下单成功":currentLang==="it"?"✓ Ordine inviato":"✓ Order placed"); return; }
+    }catch(_){}
+  }
+  try{
+    await fetch(ORDER_API,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    cart=[]; renderCart(); toast(currentLang==="zh"?"✓ 下单成功":currentLang==="it"?"✓ Ordine inviato":"✓ Order placed");
+  }catch(e){ alert("× Failed"); }
 }
 
 async function bootstrap(){ setupLangSelector(); await loadMenu(); render(); }
