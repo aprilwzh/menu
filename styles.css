@@ -1,62 +1,32 @@
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
+:root{--bd:#eee;--fg:#111;--muted:#666}
+*{box-sizing:border-box}
+body{margin:0;color:var(--fg);background:#fff;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,Arial}
+.container{max-width:1080px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.muted{color:var(--muted);font-size:14px}
+.lang-switch button{padding:8px 12px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer;margin-left:8px}
+.lang-switch .active{border-color:#111;font-weight:600}
+
+.menu{display:grid;grid-template-columns:repeat(auto-fill, minmax(220px,1fr));gap:14px;padding-bottom:110px}
+.card{border:1px solid var(--bd);border-radius:14px;padding:12px}
+.card h4{margin:6px 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.btn{padding:10px 14px;border:1px solid #111;border-radius:10px;background:#fff;cursor:pointer}
+.btn.primary{background:#111;color:#fff}
+
+.cart{position:fixed;left:16px;right:16px;bottom:16px;max-width:1080px;margin:0 auto;background:#fff;border:1px solid var(--bd);border-radius:16px;padding:14px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+.note{width:100%;padding:10px;border:1px solid #ddd;border-radius:10px}
+
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#111;color:#fff;padding:8px 12px;border-radius:10px;opacity:0;transition:opacity .25s}
+#toast.show{opacity:1}
+
+@media (min-width: 720px){ .cart{ left:50%; transform:translateX(-50%); } }
+
+/* 小票打印样式（给后台打印用） */
+@media print{
+  body{background:#fff}
+  .ticket{width:58mm;margin:0 auto;font-size:12px}
+  .ticket h3{margin:6px 0}
+  .no-print{display:none!important}
 }
 
-header {
-    background-color: #333;
-    color: #fff;
-    padding: 1rem;
-    text-align: center;
-}
-
-main {
-    display: flex;
-    flex-direction: column;
-    padding: 1rem;
-}
-
-.menu-list {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-}
-
-.menu-item {
-    background-color: #fff;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.menu-item img {
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
-}
-
-.cart-summary {
-    background-color: #fff;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-top: 1rem;
-}
-
-/* 移动设备适配 */
-@media (min-width: 768px) {
-    main {
-        flex-direction: row;
-        gap: 2rem;
-    }
-    .menu-list {
-        flex: 3;
-    }
-    .cart-summary {
-        flex: 1;
-        position: sticky;
-        top: 1rem;
-    }
-}
